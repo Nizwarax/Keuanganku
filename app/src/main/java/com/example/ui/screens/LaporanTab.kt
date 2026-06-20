@@ -59,13 +59,21 @@ fun LaporanTab(viewModel: KeuanganViewModel) {
         filteredList.filter { it.type == "Pengeluaran" }.sumOf { it.amount }
     }
 
-    val netBalance = totalIncome - totalExpense
+    val totalCapital = remember(filteredList) {
+        filteredList.filter { it.type == "Pemasukan" }.sumOf { it.capitalCost }
+    }
+
+    val grossProfit = totalIncome - totalCapital
+    val netProfit = grossProfit - totalExpense
+    val netMargin = if (totalIncome > 0) (netProfit / totalIncome) * 100.0 else 0.0
 
     // CSV and PDF Mock generation algorithms
     fun shareReportAsCsv() {
-        val csvHeader = "ID,Tanggal,Judul,Kategori,Tipe,Nominal,Catatan\n"
+        val csvHeader = "ID,Tanggal,Judul,Kategori,Tipe,Nominal,Harga Modal,Untung Bersih,Catatan\n"
         val csvRows = filteredList.mapIndexed { idx, tx ->
-            "${idx + 1},${formatDate(tx.dateMillis)},\"${tx.title}\",\"${tx.category}\",${tx.type},${tx.amount},\"${tx.notes}\""
+            val capital = if (tx.type == "Pemasukan") tx.capitalCost else 0.0
+            val untung = if (tx.type == "Pemasukan") (tx.amount - tx.capitalCost) else -tx.amount
+            "${idx + 1},${formatDate(tx.dateMillis)},\"${tx.title}\",\"${tx.category}\",${tx.type},${tx.amount},${capital},${untung},\"${tx.notes}\""
         }.joinToString("\n")
         
         val csvPayload = csvHeader + csvRows
@@ -82,15 +90,21 @@ fun LaporanTab(viewModel: KeuanganViewModel) {
     fun shareReportAsTextPdf() {
         val reportTitle = "=== LAPORAN KEUANGANKU (${periods[selectedPeriodIdx].uppercase()}) ===\n" +
                 "Diekspor pada: ${formatDate(System.currentTimeMillis())}\n\n" +
-                "RINGKASAN:\n" +
-                "- Total Pemasukan: ${formatRupiah(totalIncome)}\n" +
-                "- Total Pengeluaran: ${formatRupiah(totalExpense)}\n" +
-                "- Saldo Bersih: ${formatRupiah(netBalance)}\n\n" +
+                "RINGKASAN TOKO:\n" +
+                "- Total Omset Penjualan: ${formatRupiah(totalIncome)}\n" +
+                "- Total Modal Produk (COGS): ${formatRupiah(totalCapital)}\n" +
+                "- Untung Kotor: ${formatRupiah(grossProfit)}\n" +
+                "- Biaya Operasional (Pengeluaran): ${formatRupiah(totalExpense)}\n" +
+                "- Untung/Rugi Bersih: ${formatRupiah(netProfit)}\n" +
+                "- Margin Keuntungan Bersih: ${String.format("%.1f", netMargin)}%\n\n" +
                 "RIWAYAT TRANSAKSI:\n" +
                 "-----------------------------------------\n"
         
         val rows = filteredList.mapIndexed { idx, tx ->
-            "${idx + 1}. [${formatDate(tx.dateMillis)}] ${tx.title} (${tx.category})\n   [${tx.type}] -> ${formatRupiah(tx.amount)}\n   Catatan: ${if (tx.notes.isBlank()) "-" else tx.notes}"
+            val capitalDetails = if (tx.type == "Pemasukan") {
+                "\n   Harga Modal: ${formatRupiah(tx.capitalCost)} | Untung: ${formatRupiah(tx.amount - tx.capitalCost)}"
+            } else ""
+            "${idx + 1}. [${formatDate(tx.dateMillis)}] ${tx.title} (${tx.category})\n   [${tx.type}] -> ${formatRupiah(tx.amount)}${capitalDetails}\n   Catatan: ${if (tx.notes.isBlank()) "-" else tx.notes}"
         }.joinToString("\n\n")
 
         val reportPayload = reportTitle + rows + "\n\nTerima kasih telah menggunakan KeuanganKu."
@@ -175,7 +189,11 @@ fun LaporanTab(viewModel: KeuanganViewModel) {
 
                     summaryRowItem(label = "Total Pemasukan", amount = totalIncome, color = GreenIncome)
                     Spacer(modifier = Modifier.height(10.dp))
-                    summaryRowItem(label = "Total Pengeluaran", amount = totalExpense, color = RedExpense)
+                    summaryRowItem(label = "Total Modal COGS (Harga Beli)", amount = totalCapital, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    summaryRowItem(label = "Untung Kotor (Gross Profit)", amount = grossProfit, color = GreenIncome)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    summaryRowItem(label = "Biaya Operasional (Pengeluaran)", amount = totalExpense, color = RedExpense)
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
@@ -186,17 +204,24 @@ fun LaporanTab(viewModel: KeuanganViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Column {
+                            Text(
+                                text = "UNTUNG / RUGI BERSIH",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = "Margin Bersih: ${String.format("%.1f", netMargin)}%",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
                         Text(
-                            text = "TABUNGAN BERSIH",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = formatRupiah(netBalance),
+                            text = formatRupiah(netProfit),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = if (netBalance >= 0) GreenIncome else RedExpense
+                            color = if (netProfit >= 0) GreenIncome else RedExpense
                         )
                     }
                 }

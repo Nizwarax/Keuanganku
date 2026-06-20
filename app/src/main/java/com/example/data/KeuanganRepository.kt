@@ -70,6 +70,7 @@ class KeuanganRepository(private val dao: KeuanganDao) {
             txObj.put("category", tx.category)
             txObj.put("dateMillis", tx.dateMillis)
             txObj.put("notes", tx.notes)
+            txObj.put("capitalCost", tx.capitalCost)
             transactionsArr.put(txObj)
         }
         backupObj.put("transactions", transactionsArr)
@@ -114,7 +115,8 @@ class KeuanganRepository(private val dao: KeuanganDao) {
                                 type = txObj.getString("type"),
                                 category = txObj.getString("category"),
                                 dateMillis = txObj.getLong("dateMillis"),
-                                notes = txObj.optString("notes", "")
+                                notes = txObj.optString("notes", ""),
+                                capitalCost = txObj.optDouble("capitalCost", 0.0)
                             )
                         )
                     }

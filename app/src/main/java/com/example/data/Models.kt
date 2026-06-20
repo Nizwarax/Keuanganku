@@ -12,7 +12,8 @@ data class UserEntity(
     val isDarkMode: Boolean = false,
     val isReminderActive: Boolean = false,
     val reminderTime: String = "20:00",
-    val avatarUrl: String = ""
+    val avatarUrl: String = "",
+    val storeCapital: Double = 0.0
 ) : Serializable
 
 @Entity(tableName = "categories")
@@ -31,5 +32,6 @@ data class TransactionEntity(
     val type: String, // "Pemasukan" or "Pengeluaran"
     val category: String,
     val dateMillis: Long = System.currentTimeMillis(),
-    val notes: String = ""
+    val notes: String = "",
+    val capitalCost: Double = 0.0
 ) : Serializable

@@ -55,12 +55,14 @@ fun SistemTab(viewModel: KeuanganViewModel) {
     // Profile edited values
     var profileName by remember { mutableStateOf("") }
     var profileEmail by remember { mutableStateOf("") }
+    var profileCapital by remember { mutableStateOf("") }
 
     // Sync profile fields with local user entities once loaded
     LaunchedEffect(currentUser) {
         currentUser?.let {
             profileName = it.name
             profileEmail = it.email
+            profileCapital = if (it.storeCapital > 0) it.storeCapital.toLong().toString() else ""
         }
     }
 
@@ -275,6 +277,16 @@ fun SistemTab(viewModel: KeuanganViewModel) {
                                 modifier = Modifier.fillMaxWidth()
                             )
 
+                            OutlinedTextField(
+                                value = profileCapital,
+                                onValueChange = { profileCapital = it },
+                                label = { Text("Modal Utama Toko (Rupiah)") },
+                                leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Modal Utama") },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("e.g., 5000000") }
+                            )
+
                             Button(
                                 onClick = {
                                     if (profileName.isBlank() || profileEmail.isBlank()) {
@@ -282,12 +294,14 @@ fun SistemTab(viewModel: KeuanganViewModel) {
                                         return@Button
                                     }
                                     val currentAvatar = currentUser?.avatarUrl ?: "😎"
+                                    val capitalVal = profileCapital.toDoubleOrNull() ?: 0.0
                                     viewModel.updateUserProfile(profileName, profileEmail, currentAvatar)
-                                    Toast.makeText(context, "Profil berhasil disimpan!", Toast.LENGTH_SHORT).show()
+                                    viewModel.updateStoreCapital(capitalVal)
+                                    Toast.makeText(context, "Profil & Modal Utama disimpan!", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Perbarui Profil", fontWeight = FontWeight.Bold)
+                                Text("Perbarui Profil & Modal Utama", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

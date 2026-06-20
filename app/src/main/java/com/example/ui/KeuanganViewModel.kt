@@ -109,6 +109,27 @@ class KeuanganViewModel(
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    // --- Shop Profit / Margin Calculations ---
+    val totalProductCapital = allTransactions.map { txs ->
+        txs.filter { it.type == "Pemasukan" }.sumOf { it.capitalCost }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val grossProfit = combine(totalIncome, totalProductCapital) { income, productCapital ->
+        income - productCapital
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val netProfit = combine(grossProfit, totalExpense) { gross, expense ->
+        gross - expense
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val grossMargin = combine(totalIncome, grossProfit) { income, gross ->
+        if (income > 0) (gross / income) * 100.0 else 0.0
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val netMargin = combine(totalIncome, netProfit) { income, net ->
+        if (income > 0) (net / income) * 100.0 else 0.0
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     // --- Setters / User Actions ---
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
@@ -130,7 +151,7 @@ class KeuanganViewModel(
     }
 
     // --- Transaction CRUD Methods ---
-    fun addTransaction(title: String, amount: Double, type: String, category: String, dateMillis: Long, notes: String) {
+    fun addTransaction(title: String, amount: Double, type: String, category: String, dateMillis: Long, notes: String, capitalCost: Double = 0.0) {
         viewModelScope.launch {
             val tx = TransactionEntity(
                 title = title,
@@ -138,13 +159,14 @@ class KeuanganViewModel(
                 type = type,
                 category = category,
                 dateMillis = dateMillis,
-                notes = notes
+                notes = notes,
+                capitalCost = capitalCost
             )
             repository.insertTransaction(tx)
         }
     }
 
-    fun editTransaction(id: Int, title: String, amount: Double, type: String, category: String, dateMillis: Long, notes: String) {
+    fun editTransaction(id: Int, title: String, amount: Double, type: String, category: String, dateMillis: Long, notes: String, capitalCost: Double = 0.0) {
         viewModelScope.launch {
             val tx = TransactionEntity(
                 id = id,
@@ -153,7 +175,8 @@ class KeuanganViewModel(
                 type = type,
                 category = category,
                 dateMillis = dateMillis,
-                notes = notes
+                notes = notes,
+                capitalCost = capitalCost
             )
             repository.updateTransaction(tx)
         }
@@ -183,6 +206,13 @@ class KeuanganViewModel(
         viewModelScope.launch {
             val user = repository.getUser() ?: UserEntity(name = "Kawan Keuangan", email = "user@keuanganku.com")
             repository.saveUser(user.copy(isDarkMode = enabled))
+        }
+    }
+
+    fun updateStoreCapital(capital: Double) {
+        viewModelScope.launch {
+            val user = repository.getUser() ?: UserEntity(name = "Kawan Keuangan", email = "user@keuanganku.com")
+            repository.saveUser(user.copy(storeCapital = capital))
         }
     }
 

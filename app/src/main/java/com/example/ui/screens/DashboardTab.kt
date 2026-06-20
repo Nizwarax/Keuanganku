@@ -216,6 +216,149 @@ fun DashboardTab(
             }
         }
 
+        // Shop/Store Performance Widget (Modal Utama, Untung Rugi, Margin)
+        item {
+            val grossProfitVal by viewModel.grossProfit.collectAsState()
+            val netProfitVal by viewModel.netProfit.collectAsState()
+            val netMarginVal by viewModel.netMargin.collectAsState()
+            val storeCapitalVal = currentUser?.storeCapital ?: 0.0
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Kinerja & Analisis Toko",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // 1. Modal Utama Toko
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalanceWallet,
+                                    contentDescription = "Modal Utama",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Modal Utama Toko",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                Text(
+                                    text = formatRupiah(storeCapitalVal),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        
+                        Text(
+                            text = "Atur di Pengaturan",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                    // 2. Untung Rugi & Margin Row Grid
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Profit/Loss Card
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (netProfitVal >= 0) GreenIncome.copy(alpha = 0.1f) else RedExpense.copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Untung / Rugi Toko",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = formatRupiah(netProfitVal),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (netProfitVal >= 0) GreenIncome else RedExpense,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = if (netProfitVal >= 0) "Surplus Untung" else "Defisit Rugi",
+                                    fontSize = 10.sp,
+                                    color = if (netProfitVal >= 0) GreenIncome else RedExpense,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Margin Card
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (netMarginVal >= 0) GreenIncome.copy(alpha = 0.08f) else RedExpense.copy(alpha = 0.08f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Margin Keuntungan",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${String.format("%.1f", netMarginVal)}%",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (netMarginVal >= 0) GreenIncome else RedExpense,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Dari Omset Penjualan",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Quick Trend Line Chart (Mini Visualization Widget)
         item {
             Card(

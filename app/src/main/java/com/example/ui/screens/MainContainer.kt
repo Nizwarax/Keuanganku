@@ -50,6 +50,7 @@ fun MainContainer(
     var txType by remember { mutableStateOf("Pengeluaran") } // "Pemasukan" vs "Pengeluaran"
     var txCategory by remember { mutableStateOf("") }
     var txNotes by remember { mutableStateOf("") }
+    var txCapitalCost by remember { mutableStateOf("") }
 
     // Synchronize category selection when type changes
     val displayedCategories = remember(allCategories, txType) {
@@ -69,6 +70,7 @@ fun MainContainer(
         txAmount = ""
         txType = "Pengeluaran"
         txNotes = ""
+        txCapitalCost = ""
         if (displayedCategories.isNotEmpty()) {
             txCategory = displayedCategories.first().name
         }
@@ -82,6 +84,7 @@ fun MainContainer(
         txType = tx.type
         txCategory = tx.category
         txNotes = tx.notes
+        txCapitalCost = if (tx.capitalCost > 0) tx.capitalCost.toLong().toString() else ""
         showAddEditDialog = true
     }
 
@@ -275,13 +278,27 @@ fun MainContainer(
                     OutlinedTextField(
                         value = txAmount,
                         onValueChange = { txAmount = it },
-                        label = { Text("Jumlah (Rupiah)") },
+                        label = { Text(if (txType == "Pemasukan") "Harga Jual / Omset (Rupiah)" else "Jumlah (Rupiah)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         placeholder = { Text("e.g., 50000") },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+
+                    // Input Capital Cost (Only for Pemasukan / Sales)
+                    AnimatedVisibility(visible = txType == "Pemasukan") {
+                        OutlinedTextField(
+                            value = txCapitalCost,
+                            onValueChange = { txCapitalCost = it },
+                            label = { Text("Harga Modal / COGS (Rupiah)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            placeholder = { Text("e.g., 30000") },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
 
                     // Category scroll list
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -373,6 +390,8 @@ fun MainContainer(
                                     return@Button
                                 }
 
+                                 val capitalCostVal = if (txType == "Pemasukan") (txCapitalCost.toDoubleOrNull() ?: 0.0) else 0.0
+
                                 if (isEditing) {
                                     viewModel.editTransaction(
                                         id = editingTransaction!!.id,
@@ -381,7 +400,8 @@ fun MainContainer(
                                         type = txType,
                                         category = txCategory,
                                         dateMillis = editingTransaction!!.dateMillis,
-                                        notes = txNotes
+                                        notes = txNotes,
+                                        capitalCost = capitalCostVal
                                     )
                                     Toast.makeText(context, "Transaksi berhasil diperbarui!", Toast.LENGTH_SHORT).show()
                                 } else {
@@ -391,7 +411,8 @@ fun MainContainer(
                                         type = txType,
                                         category = txCategory,
                                         dateMillis = System.currentTimeMillis(),
-                                        notes = txNotes
+                                        notes = txNotes,
+                                        capitalCost = capitalCostVal
                                     )
                                     Toast.makeText(context, "Transaksi dicatat!", Toast.LENGTH_SHORT).show()
                                 }

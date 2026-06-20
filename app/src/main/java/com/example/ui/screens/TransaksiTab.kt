@@ -400,6 +400,16 @@ fun TransaksiTab(
                         detailRowItem(label = "Jenis", value = tx.type)
                         detailRowItem(label = "Kategori", value = tx.category)
                         detailRowItem(label = "Tanggal", value = formatDate(tx.dateMillis))
+                        
+                        if (tx.type == "Pemasukan") {
+                            val untung = tx.amount - tx.capitalCost
+                            val marginTx = if (tx.amount > 0) (untung / tx.amount) * 100 else 0.0
+                            detailRowItem(label = "Harga Jual (Pemasukan)", value = formatRupiah(tx.amount))
+                            detailRowItem(label = "Harga Modal (COGS)", value = formatRupiah(tx.capitalCost))
+                            detailRowItem(label = "Keuntungan Bersih", value = formatRupiah(untung))
+                            detailRowItem(label = "Margin Produk", value = "${String.format("%.1f", marginTx)}%")
+                        }
+                        
                         detailRowItem(label = "Catatan", value = if (tx.notes.isBlank()) "-" else tx.notes)
                     }
 
