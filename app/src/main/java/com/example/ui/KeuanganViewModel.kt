@@ -313,6 +313,85 @@ class KeuanganViewModel(
         }
     }
 
+    // --- Session & Remember Me Preference helpers ---
+    private val sharedPrefs = getApplication<Application>().getSharedPreferences("keuangan_prefs", android.content.Context.MODE_PRIVATE)
+
+    fun isRememberMeEnabled(): Boolean = sharedPrefs.getBoolean("remember_me", false)
+    fun setRememberMeEnabled(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("remember_me", enabled).apply()
+    }
+
+    fun isLoggedIn(): Boolean = sharedPrefs.getBoolean("is_logged_in", false)
+    fun setLoggedIn(loggedIn: Boolean) {
+        sharedPrefs.edit().putBoolean("is_logged_in", loggedIn).apply()
+    }
+
+    fun isCompletedOnboarding(): Boolean = sharedPrefs.getBoolean("completed_onboarding", false)
+    fun setCompletedOnboarding(completed: Boolean) {
+        sharedPrefs.edit().putBoolean("completed_onboarding", completed).apply()
+    }
+
+    fun saveSession(email: String, token: String) {
+        sharedPrefs.edit()
+            .putString("logged_email", email)
+            .putString("session_token", token)
+            .apply()
+    }
+
+    fun logOut() {
+        sharedPrefs.edit()
+            .putBoolean("is_logged_in", false)
+            .putString("session_token", null)
+            .apply()
+    }
+
+    // --- Online Authentication via Retrofit ---
+    private val authApi = AuthApiService.create()
+
+    suspend fun loginOnline(email: String, password: String): Result<String> {
+        return try {
+            val response = authApi.login(LoginRequest(email, password))
+            if (response.isSuccessful && response.body()?.token != null) {
+                val token = response.body()?.token ?: "local-token"
+                Result.success(token)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMsg = if (errorBody?.contains("user not found", ignoreCase = true) == true) {
+                    "User tidak ditemukan di cloud database!"
+                } else if (errorBody?.contains("missing email", ignoreCase = true) == true) {
+                    "Email tidak boleh kosong!"
+                } else if (errorBody?.contains("missing password", ignoreCase = true) == true) {
+                    "Kata sandi tidak boleh kosong!"
+                } else {
+                    "Masukkan password atau email dengan benar!"
+                }
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun registerOnline(email: String, password: String): Result<String> {
+        return try {
+            val response = authApi.register(RegisterRequest(email, password))
+            if (response.isSuccessful && response.body()?.token != null) {
+                val token = response.body()?.token ?: "local-token"
+                Result.success(token)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMsg = if (errorBody?.contains("Note: Only defined users", ignoreCase = true) == true) {
+                    "ONLINE_LIMITATION"
+                } else {
+                    "Gagal mendaftar online. Silakan cek data Anda."
+                }
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // Backup & Restore Wrapper Tasks
     fun exportBackup(onExported: (String) -> Unit) {
         viewModelScope.launch {

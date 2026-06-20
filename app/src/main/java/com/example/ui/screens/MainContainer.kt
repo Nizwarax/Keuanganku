@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -319,105 +321,102 @@ fun MainContainer(
                     }
 
                     if (txType == "Pengeluaran" || isEditing || pemasukanMode == "Manual") {
-                        // Input Title
-                        OutlinedTextField(
-                            value = txTitle,
-                            onValueChange = { txTitle = it },
-                            label = { Text("Judul Transaksi") },
-                            placeholder = { Text("e.g., Gaji Bulanan / Beli Kopi") },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        // Input Amount
-                        OutlinedTextField(
-                            value = txAmount,
-                            onValueChange = { txAmount = it },
-                            label = { Text(if (txType == "Pemasukan") "Harga Jual / Omset (Rupiah)" else "Jumlah (Rupiah)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            placeholder = { Text("e.g., 50000") },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        // Input Capital Cost (Only for Pemasukan / Sales)
-                        AnimatedVisibility(visible = txType == "Pemasukan") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f, fill = false)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Input Title
                             OutlinedTextField(
-                                value = txCapitalCost,
-                                onValueChange = { txCapitalCost = it },
-                                label = { Text("Harga Modal / COGS (Rupiah)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                placeholder = { Text("e.g., 30000") },
+                                value = txTitle,
+                                onValueChange = { txTitle = it },
+                                label = { Text("Judul Transaksi") },
+                                placeholder = { Text(if (txType == "Pemasukan") "e.g., Penjualan Toko / Gaji" else "e.g., Beli Kopi / Bayar Listrik") },
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
-                        }
 
-                        // Category scroll list
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = "Kategori",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            // Input Amount
+                            OutlinedTextField(
+                                value = txAmount,
+                                onValueChange = { txAmount = it },
+                                label = { Text(if (txType == "Pemasukan") "Harga Jual / Omset (Rupiah)" else "Jumlah (Rupiah)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                placeholder = { Text("e.g., 50000") },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
                             )
 
-                            if (displayedCategories.isEmpty()) {
-                                Text(
-                                    text = "Mohon buat kategori baru di tab Pengaturan!",
-                                    fontSize = 11.sp,
-                                    color = RedExpense,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            } else {
-                                LazyRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(displayedCategories) { cat ->
-                                        val isSelected = txCategory == cat.name
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.primary 
-                                                    else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                                )
-                                                .clickable { txCategory = cat.name }
-                                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                            // ONLY show advanced details (categories and notes) for Pengeluaran / Expense
+                            if (txType == "Pengeluaran") {
+                                // Category scroll list
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "Kategori",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+
+                                    if (displayedCategories.isEmpty()) {
+                                        Text(
+                                            text = "Mohon buat kategori baru di tab Pengaturan!",
+                                            fontSize = 11.sp,
+                                            color = RedExpense,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    } else {
+                                        LazyRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Text(text = cat.icon, fontSize = 14.sp)
-                                                Text(
-                                                    text = cat.name,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
+                                            items(displayedCategories) { cat ->
+                                                val isSelected = txCategory == cat.name
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                            if (isSelected) MaterialTheme.colorScheme.primary 
+                                                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                                        )
+                                                        .clickable { txCategory = cat.name }
+                                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        Text(text = cat.icon, fontSize = 14.sp)
+                                                        Text(
+                                                            text = cat.name,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
+
+                                // Input Notes
+                                OutlinedTextField(
+                                    value = txNotes,
+                                    onValueChange = { txNotes = it },
+                                    label = { Text("Catatan Tambahan (Opsional)") },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = 2
+                                )
                             }
                         }
 
-                        // Input Notes
-                        OutlinedTextField(
-                            value = txNotes,
-                            onValueChange = { txNotes = it },
-                            label = { Text("Catatan Tambahan (Opsional)") },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            maxLines = 2
-                        )
-
-                        // Action Save/Update Buttons
+                        // Action Save/Update Buttons (placed layout-wise below scrollable Column)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -441,12 +440,21 @@ fun MainContainer(
                                         Toast.makeText(context, "Masukkan nominal angka yang valid!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
-                                    if (txCategory.isBlank()) {
+
+                                    // Resolve category fallback for Pemasukan Manual if chosen list is hidden
+                                    var finalCategory = txCategory
+                                    if (txType == "Pemasukan" && finalCategory.isBlank()) {
+                                        if (displayedCategories.isNotEmpty()) {
+                                            finalCategory = displayedCategories.first().name
+                                        } else {
+                                            finalCategory = "Penjualan"
+                                        }
+                                    } else if (txType == "Pengeluaran" && finalCategory.isBlank()) {
                                         Toast.makeText(context, "Pilih kategori!", Toast.LENGTH_SHORT).show()
                                         return@Button
                                     }
 
-                                    val capitalCostVal = if (txType == "Pemasukan") (txCapitalCost.toDoubleOrNull() ?: 0.0) else 0.0
+                                    val capitalCostVal = 0.0 // No manual capital cost for simple Pemasukan Manual
 
                                     if (isEditing) {
                                         viewModel.editTransaction(
@@ -454,9 +462,9 @@ fun MainContainer(
                                             title = txTitle,
                                             amount = amountVal,
                                             type = txType,
-                                            category = txCategory,
+                                            category = finalCategory,
                                             dateMillis = editingTransaction!!.dateMillis,
-                                            notes = txNotes,
+                                            notes = if (txType == "Pemasukan") "" else txNotes,
                                             capitalCost = capitalCostVal
                                         )
                                         Toast.makeText(context, "Transaksi berhasil diperbarui!", Toast.LENGTH_SHORT).show()
@@ -465,9 +473,9 @@ fun MainContainer(
                                             title = txTitle,
                                             amount = amountVal,
                                             type = txType,
-                                            category = txCategory,
+                                            category = finalCategory,
                                             dateMillis = System.currentTimeMillis(),
-                                            notes = txNotes,
+                                            notes = if (txType == "Pemasukan") "" else txNotes,
                                             capitalCost = capitalCostVal
                                         )
                                         Toast.makeText(context, "Transaksi dicatat!", Toast.LENGTH_SHORT).show()

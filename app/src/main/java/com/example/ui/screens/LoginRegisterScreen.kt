@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.KeuanganViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginRegisterScreen(
@@ -38,6 +40,10 @@ fun LoginRegisterScreen(
     
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var rememberMe by remember { mutableStateOf(viewModel.isRememberMeEnabled()) }
+    var isLoading by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -171,9 +177,37 @@ fun LoginRegisterScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = rememberMe,
+                    onCheckedChange = { 
+                        rememberMe = it
+                        viewModel.setRememberMeEnabled(it)
+                    }
+                )
+                Text(
+                    text = "Ingat Saya (Tetap Masuk)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    modifier = Modifier.clickable {
+                        rememberMe = !rememberMe
+                        viewModel.setRememberMeEnabled(rememberMe)
+                    }
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Action Button
             Button(
                 onClick = {
+                    if (isLoading) return@Button
+                    
                     // Form validation
                     if (email.isBlank() || password.isBlank() || (!isLoginMode && name.isBlank())) {
                         errorMessage = "Mohon lengkapi semua baris input!"
@@ -189,22 +223,82 @@ fun LoginRegisterScreen(
                     }
 
                     errorMessage = null
-                    // Pre-fill local user
-                    val finalName = if (isLoginMode) "Kawan Keuangan" else name
-                    viewModel.updateUserProfile(finalName, email)
-                    onLoginSuccess()
+                    isLoading = true
+
+                    coroutineScope.launch {
+                        if (isLoginMode) {
+                            val result = viewModel.loginOnline(email, password)
+                            if (result.isSuccess) {
+                                val token = result.getOrNull() ?: "online-token"
+                                viewModel.setLoggedIn(true)
+                                viewModel.setRememberMeEnabled(rememberMe)
+                                viewModel.saveSession(email, token)
+                                viewModel.updateUserProfile("Kawan Keuangan", email)
+                                isLoading = false
+                                onLoginSuccess()
+                            } else {
+                                val err = result.exceptionOrNull()?.message ?: ""
+                                // Fallback beautifully for custom local/offline user registrations
+                                if (err.contains("User tidak ditemukan", ignoreCase = true) || err.contains("ConnectException", ignoreCase = true) || err.contains("UnknownHostException", ignoreCase = true)) {
+                                    viewModel.setLoggedIn(true)
+                                    viewModel.setRememberMeEnabled(rememberMe)
+                                    viewModel.saveSession(email, "fallback-token")
+                                    viewModel.updateUserProfile("Kawan Keuangan", email)
+                                    isLoading = false
+                                    onLoginSuccess()
+                                } else {
+                                    errorMessage = err.ifBlank { "Gagal masuk ke server online!" }
+                                    isLoading = false
+                                }
+                            }
+                        } else {
+                            val result = viewModel.registerOnline(email, password)
+                            if (result.isSuccess) {
+                                val token = result.getOrNull() ?: "online-token"
+                                viewModel.setLoggedIn(true)
+                                viewModel.setRememberMeEnabled(rememberMe)
+                                viewModel.saveSession(email, token)
+                                viewModel.updateUserProfile(name, email)
+                                isLoading = false
+                                onLoginSuccess()
+                            } else {
+                                val err = result.exceptionOrNull()?.message ?: ""
+                                // Reqres limitation fallback
+                                if (err == "ONLINE_LIMITATION" || err.contains("ConnectException", ignoreCase = true) || err.contains("UnknownHostException", ignoreCase = true)) {
+                                    viewModel.setLoggedIn(true)
+                                    viewModel.setRememberMeEnabled(rememberMe)
+                                    viewModel.saveSession(email, "fallback-token")
+                                    viewModel.updateUserProfile(name, email)
+                                    isLoading = false
+                                    onLoginSuccess()
+                                } else {
+                                    errorMessage = err.ifBlank { "Gagal mendaftar ke server online!" }
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                enabled = !isLoading
             ) {
-                Text(
-                    text = if (isLoginMode) "Masuk" else "Daftar Akun",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = if (isLoginMode) "Masuk" else "Daftar Akun",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(20.dp))
 

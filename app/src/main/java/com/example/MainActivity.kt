@@ -50,11 +50,18 @@ class MainActivity : ComponentActivity() {
                         when (screen) {
                             "splash" -> SplashScreen(
                                 onNavigateNext = {
-                                    currentScreen = "onboarding"
+                                    if (viewModel.isLoggedIn() && viewModel.isRememberMeEnabled()) {
+                                        currentScreen = "main"
+                                    } else if (viewModel.isCompletedOnboarding()) {
+                                        currentScreen = "login"
+                                    } else {
+                                        currentScreen = "onboarding"
+                                    }
                                 }
                             )
                             "onboarding" -> OnboardingScreen(
                                 onGetStarted = {
+                                    viewModel.setCompletedOnboarding(true)
                                     currentScreen = "login"
                                 }
                             )
@@ -67,6 +74,7 @@ class MainActivity : ComponentActivity() {
                             "main" -> MainContainer(
                                 viewModel = viewModel,
                                 onLogoutRequested = {
+                                    viewModel.logOut()
                                     currentScreen = "login"
                                 }
                             )
