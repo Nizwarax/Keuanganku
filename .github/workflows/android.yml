@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build debug APK
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
         distribution: 'temurin'
         cache: 'gradle'
 
-    - name: Decode Debug Keystore
+    - name: Decode Debug Keystore (Bypass Key)
       run: |
         if [ -f debug.keystore.base64 ]; then
           base64 -d debug.keystore.base64 > debug.keystore
@@ -41,12 +41,12 @@ jobs:
       with:
         gradle-version: '9.3.1'
 
-    - name: Build Debug APK
-      run: gradle :app:assembleDebug
+    - name: Build Release APK (Bypassed Signing)
+      run: gradle :app:assembleRelease
 
-    - name: Upload Debug APK
+    - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: Keuanganku-Debug-APK
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: Keuanganku-Release-APK
+        path: app/build/outputs/apk/release/*.apk
         if-no-files-found: error
