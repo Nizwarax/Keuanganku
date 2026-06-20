@@ -42,6 +42,18 @@ class KeuanganRepository(private val dao: KeuanganDao) {
     suspend fun clearTransactions() = dao.clearTransactions()
 
 
+    // --- Product Repo Methods ---
+    val allProducts: Flow<List<ProductEntity>> = dao.getAllProductsFlow()
+
+    suspend fun insertProduct(product: ProductEntity) = dao.insertProduct(product)
+
+    suspend fun updateProduct(product: ProductEntity) = dao.updateProduct(product)
+
+    suspend fun deleteProduct(product: ProductEntity) = dao.deleteProduct(product)
+
+    suspend fun clearProducts() = dao.clearProducts()
+
+
     // --- Backup & Restore Methods ---
     suspend fun exportBackupJson(): String {
         val categories = dao.getAllCategoriesSync()

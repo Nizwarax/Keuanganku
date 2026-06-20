@@ -61,4 +61,20 @@ interface KeuanganDao {
 
     @Query("DELETE FROM transactions")
     suspend fun clearTransactions()
+
+    // --- Product Queries ---
+    @Query("SELECT * FROM products ORDER BY name ASC")
+    fun getAllProductsFlow(): Flow<List<ProductEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProduct(product: ProductEntity)
+
+    @Update
+    suspend fun updateProduct(product: ProductEntity)
+
+    @Delete
+    suspend fun deleteProduct(product: ProductEntity)
+
+    @Query("DELETE FROM products")
+    suspend fun clearProducts()
 }

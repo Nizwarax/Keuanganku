@@ -10,8 +10,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [UserEntity::class, CategoryEntity::class, TransactionEntity::class],
-    version = 2,
+    entities = [UserEntity::class, CategoryEntity::class, TransactionEntity::class, ProductEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class KeuanganDatabase : RoomDatabase() {
@@ -75,6 +75,16 @@ abstract class KeuanganDatabase : RoomDatabase() {
 
             incomes.forEach { dao.insertCategory(it) }
             expenses.forEach { dao.insertCategory(it) }
+
+            // Pre-seed default products for cashier
+            val defaultProducts = listOf(
+                ProductEntity(name = "Kopi Espresso / Latte", capitalCost = 10000.0, sellPrice = 18000.0, emoji = "☕"),
+                ProductEntity(name = "Roti Croissant Keju", capitalCost = 12000.0, sellPrice = 22000.0, emoji = "🥐"),
+                ProductEntity(name = "Donat Cokelat Meses", capitalCost = 5000.0, sellPrice = 10000.0, emoji = "🍩"),
+                ProductEntity(name = "Boba Milk Tea", capitalCost = 13000.0, sellPrice = 20000.0, emoji = "🧋"),
+                ProductEntity(name = "Air Mineral Botol", capitalCost = 2000.0, sellPrice = 5000.0, emoji = "💧")
+            )
+            defaultProducts.forEach { dao.insertProduct(it) }
 
             // Pre-seed an initial default user
             val defaultUser = UserEntity(

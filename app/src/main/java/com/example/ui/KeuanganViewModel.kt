@@ -35,6 +35,12 @@ class KeuanganViewModel(
         initialValue = emptyList()
     )
 
+    val allProducts = repository.allProducts.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
     // --- Filter & Search States ---
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
@@ -198,6 +204,76 @@ class KeuanganViewModel(
     fun deleteCategory(category: CategoryEntity) {
         viewModelScope.launch {
             repository.deleteCategory(category)
+        }
+    }
+
+    // --- Product CRUD Methods ---
+    fun addProduct(name: String, capitalCost: Double, sellPrice: Double, emoji: String, stock: Int = 999) {
+        viewModelScope.launch {
+            repository.insertProduct(ProductEntity(name = name, capitalCost = capitalCost, sellPrice = sellPrice, emoji = emoji, stock = stock))
+        }
+    }
+
+    fun editProduct(id: Int, name: String, capitalCost: Double, sellPrice: Double, emoji: String, stock: Int = 999) {
+        viewModelScope.launch {
+            repository.updateProduct(ProductEntity(id = id, name = name, capitalCost = capitalCost, sellPrice = sellPrice, emoji = emoji, stock = stock))
+        }
+    }
+
+    fun deleteProduct(product: ProductEntity) {
+        viewModelScope.launch {
+            repository.deleteProduct(product)
+        }
+    }
+
+    // --- Cashier Checkout Method ---
+    fun checkoutProducts(items: Map<ProductEntity, Int>, notes: String = "") {
+        if (items.isEmpty()) return
+        viewModelScope.launch {
+            var totalAmount = 0.0
+            var totalCapital = 0.0
+            val titlesList = mutableListOf<String>()
+            val notesBuilder = StringBuilder()
+
+            if (notes.isNotBlank()) {
+                notesBuilder.append(notes).append("\n\nDetail:\n")
+            } else {
+                notesBuilder.append("Detail Penjualan Kasir:\n")
+            }
+
+            items.forEach { (product, qty) ->
+                if (qty > 0) {
+                    val subTotal = product.sellPrice * qty
+                    val subCapital = product.capitalCost * qty
+                    totalAmount += subTotal
+                    totalCapital += subCapital
+                    
+                    titlesList.add("${qty}x ${product.name}")
+                    notesBuilder.append("- ${product.emoji} ${product.name} (${qty}x @ Rp ${product.sellPrice.toLong()}) = Rp ${subTotal.toLong()}\n")
+                    
+                    // Update stock
+                    if (product.stock >= qty) {
+                        repository.updateProduct(product.copy(stock = product.stock - qty))
+                    }
+                }
+            }
+
+            val titleStr = "Penjualan Kasir: " + if (titlesList.size <= 2) {
+                titlesList.joinToString(", ")
+            } else {
+                titlesList.take(2).joinToString(", ") + " dan " + (titlesList.size - 2) + " produk lainnya"
+            }
+            
+            val tx = TransactionEntity(
+                title = titleStr,
+                amount = totalAmount,
+                type = "Pemasukan",
+                category = "Penjualan",
+                dateMillis = System.currentTimeMillis(),
+                notes = notesBuilder.toString().trim(),
+                capitalCost = totalCapital
+            )
+            repository.insertTransaction(tx)
         }
     }
 

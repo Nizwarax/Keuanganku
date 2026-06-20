@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.KeuanganViewModel
 import com.example.ui.theme.GreenIncome
 import com.example.ui.theme.RedExpense
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun StatistikTab(viewModel: KeuanganViewModel) {
@@ -49,6 +52,278 @@ fun StatistikTab(viewModel: KeuanganViewModel) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // SECTION: Premium Shop profit allocations card
+        item {
+            val totalIncome by viewModel.totalIncome.collectAsState()
+            val totalExpense by viewModel.totalExpense.collectAsState()
+            val totalProductCapital by viewModel.totalProductCapital.collectAsState()
+            val grossProfitVal by viewModel.grossProfit.collectAsState()
+            val netProfitVal by viewModel.netProfit.collectAsState()
+            val netMarginVal by viewModel.netMargin.collectAsState()
+
+            val totalAllocated = totalProductCapital + totalExpense + (if (netProfitVal > 0) netProfitVal else 0.0)
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Header Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Analytics,
+                                contentDescription = "Analitika Toko",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Analisis Alokasi Omset & Margin",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        // Badge
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "PRO",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    if (totalIncome <= 0) {
+                        // Empty State inside Analisis Card
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Storefront,
+                                    contentDescription = "No data",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Belum ada omset penjualan terekam.\nCatat penjualan 'Pemasukan' untuk melihat analisis.",
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    } else {
+                        // Progress multi bar allocations representation
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(20.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            ) {
+                                if (totalProductCapital > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .weight(if (totalAllocated > 0) (totalProductCapital / totalAllocated).toFloat().coerceIn(0.01f, 1f) else 1f)
+                                            .background(Color(0xFF8E8A9F)) // Grey for COGS
+                                    )
+                                }
+                                if (totalExpense > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .weight(if (totalAllocated > 0) (totalExpense / totalAllocated).toFloat().coerceIn(0.01f, 1f) else 1f)
+                                            .background(RedExpense) // Red for OpEx
+                                    )
+                                }
+                                if (netProfitVal > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .weight(if (totalAllocated > 0) (netProfitVal / totalAllocated).toFloat().coerceIn(0.01f, 1f) else 1f)
+                                            .background(GreenIncome) // Green for profit
+                                    )
+                                }
+                            }
+
+                            // Info text of allocations
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Total Omset: ${formatRupiah(totalIncome)}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Margin: ${String.format("%.1f", netMarginVal)}%",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (netMarginVal >= 0) GreenIncome else RedExpense
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                        // Grid Breakdown Details
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Item 1: Modal Beli / COGS
+                            val capitalPct = (totalProductCapital / totalIncome) * 100.0
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF8E8A9F)))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Harga Modal (COGS)",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                }
+                                Text(
+                                    text = "${formatRupiah(totalProductCapital)} (${String.format("%.1f", capitalPct)}%)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Item 2: Biaya Operasional / OpEx
+                            val expensePct = (totalExpense / totalIncome) * 100.0
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(RedExpense))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Tambahan Pengeluaran (OpEx)",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                }
+                                Text(
+                                    text = "${formatRupiah(totalExpense)} (${String.format("%.1f", expensePct)}%)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Item 3: Untung Bersih
+                            val profitPct = (netProfitVal / totalIncome) * 100.0
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(GreenIncome))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Laba / (Rugi) Bersih Toko",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                }
+                                Text(
+                                    text = "${formatRupiah(netProfitVal)} (${String.format("%.1f", profitPct)}%)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (netProfitVal >= 0) GreenIncome else RedExpense
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Smart Diagnostic Indicator
+                        val healthStatus = when {
+                            netMarginVal >= 30.0 -> Pair("Sangat Sehat", "Margin keuntungan toko Anda sangat kuat (>30%). Kinerja penjualan luar biasa, pertahankan!")
+                            netMarginVal in 15.0..30.0 -> Pair("Sehat & Stabil", "Margin berada di batas aman rata-rata ritel standar industri (15% - 30%).")
+                            netMarginVal in 0.0..15.0 -> Pair("Margin Tipis", "Margin tipis (<15%). Coba optimalkan harga jual produk atau kurangi biaya tambahan.")
+                            else -> Pair("Defisit Rugi", "Toko mengalami kerugian bersih. Segera tinjauan harga modal produk dan pangkas operasional!")
+                        }
+
+                        val themeHealthColor = when {
+                            netMarginVal >= 15.0 -> GreenIncome
+                            netMarginVal in 0.0..15.0 -> Color(0xFFFFB74D) // Beautiful Orange Warm
+                            else -> RedExpense
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(themeHealthColor.copy(alpha = 0.1f))
+                                .padding(12.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Status",
+                                        tint = themeHealthColor,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "Kesehatan Toko: ${healthStatus.first}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = themeHealthColor
+                                    )
+                                }
+                                Text(
+                                    text = healthStatus.second,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Toggle view
         item {
             Row(

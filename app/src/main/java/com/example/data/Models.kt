@@ -35,3 +35,14 @@ data class TransactionEntity(
     val notes: String = "",
     val capitalCost: Double = 0.0
 ) : Serializable
+
+@Entity(tableName = "products")
+data class ProductEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val capitalCost: Double,
+    val sellPrice: Double,
+    val emoji: String = "📦",
+    val stock: Int = 999
+) : Serializable
+
