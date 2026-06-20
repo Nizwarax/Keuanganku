@@ -42,7 +42,7 @@ jobs:
         gradle-version: '9.3.1'
 
     - name: Build Release APK (Bypassed Signing)
-      run: gradle :app:assembleRelease
+      run: gradle :app:assembleRelease --no-daemon --no-configuration-cache
 
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
