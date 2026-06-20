@@ -464,6 +464,148 @@ fun SistemTab(viewModel: KeuanganViewModel) {
                         }
                     }
                 }
+
+                // Section 5: Cloud Sync (Online Storage & Multi-Device Sync)
+                item {
+                    var isSyncingToCloud by remember { mutableStateOf(false) }
+                    var isSyncingFromCloud by remember { mutableStateOf(false) }
+                    var lastSyncText by remember { mutableStateOf(viewModel.getLastCloudSyncTime()) }
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = "Cloud Sync",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Sinkronisasi Awan (Cloud Sync)",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            
+                            Text(
+                                text = "Gabungkan catatan secara Online & Offline! Unggah data Anda ke awan agar tidak hilang, atau unduh di HP lain untuk melanjutkan pencatatan dengan Email Anda.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+
+                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), thickness = 1.dp)
+
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Email Sinkron:", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                                    Text(
+                                        text = currentUser?.email ?: profileEmail.ifBlank { "Belum Terhubung" },
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Sinkron Terakhir:", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                                    Text(
+                                        text = lastSyncText,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (isSyncingToCloud || isSyncingFromCloud) return@Button
+                                        isSyncingToCloud = true
+                                        viewModel.syncToCloud { success, message ->
+                                            isSyncingToCloud = false
+                                            lastSyncText = viewModel.getLastCloudSyncTime()
+                                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    enabled = !isSyncingToCloud && !isSyncingFromCloud
+                                ) {
+                                    if (isSyncingToCloud) {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudUpload,
+                                            contentDescription = "Upload",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Unggah Data", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (isSyncingToCloud || isSyncingFromCloud) return@Button
+                                        isSyncingFromCloud = true
+                                        viewModel.syncFromCloud { success, message ->
+                                            isSyncingFromCloud = false
+                                            lastSyncText = viewModel.getLastCloudSyncTime()
+                                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    enabled = !isSyncingToCloud && !isSyncingFromCloud
+                                ) {
+                                    if (isSyncingFromCloud) {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.onSecondary,
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudDownload,
+                                            contentDescription = "Download",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Unduh & Sinkron", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -13,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +89,48 @@ fun DashboardTab(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    var isSyncingInDashboard by remember { mutableStateOf(false) }
+                    val context = LocalContext.current
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp))
+                            .clickable {
+                                if (isSyncingInDashboard) return@clickable
+                                isSyncingInDashboard = true
+                                viewModel.syncToCloud { success, message ->
+                                    isSyncingInDashboard = false
+                                    Toast.makeText(context, if (success) "Selesai sinkron ke Cloud!" else message, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        if (isSyncingInDashboard) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(10.dp),
+                                strokeWidth = 1.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = "Sync",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = "Sinkron Instan",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 
                 // Profile Avatar Placeholder Icon

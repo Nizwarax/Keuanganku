@@ -8,6 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -404,6 +408,103 @@ class KeuanganViewModel(
         viewModelScope.launch {
             val success = repository.importBackupJson(jsonString)
             onCompleted(success)
+        }
+    }
+
+    // --- Google Drive / Cloud Sync Simulator via KVDB API ---
+    private val httpClient = okhttp3.OkHttpClient.Builder()
+        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+
+    fun getLastCloudSyncTime(): String = sharedPrefs.getString("last_cloud_sync", "Belum pernah") ?: "Belum pernah"
+    private fun setLastCloudSyncTime(time: String) {
+        sharedPrefs.edit().putString("last_cloud_sync", time).apply()
+    }
+
+    fun syncToCloud(onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val user = repository.getUser()
+            val email = user?.email ?: sharedPrefs.getString("logged_email", "") ?: ""
+            if (email.isBlank()) {
+                onResult(false, "Sesi email tidak ditemukan. Hubungkan profil atau masuk kembali!")
+                return@launch
+            }
+
+            val backupJson = repository.exportBackupJson()
+            val safeKey = email.lowercase().replace("@", "_at_").replace(".", "_dot_")
+            val url = "https://kvdb.io/MTK5l2nifyo_keuanganku_v2/$safeKey"
+
+            try {
+                val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+                val requestBody = backupJson.toRequestBody(mediaType)
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .put(requestBody)
+                    .build()
+
+                val success = withContext(Dispatchers.IO) {
+                    val response = httpClient.newCall(request).execute()
+                    response.isSuccessful
+                }
+
+                if (success) {
+                    val now = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
+                    setLastCloudSyncTime(now)
+                    onResult(true, "Data Anda berhasil diunggah ke cloud! Anda bisa unduh data ini di HP lain menggunakan email Anda: $email")
+                } else {
+                    onResult(false, "Gagal mengunggah data. Error server cloud.")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onResult(false, e.message ?: "Koneksi terganggu. Silakan periksa koneksi internet Anda!")
+            }
+        }
+    }
+
+    fun syncFromCloud(onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val user = repository.getUser()
+            val email = user?.email ?: sharedPrefs.getString("logged_email", "") ?: ""
+            if (email.isBlank()) {
+                onResult(false, "Sesi email tidak ditemukan. Hubungkan profil atau masuk kembali!")
+                return@launch
+            }
+
+            val safeKey = email.lowercase().replace("@", "_at_").replace(".", "_dot_")
+            val url = "https://kvdb.io/MTK5l2nifyo_keuanganku_v2/$safeKey"
+
+            try {
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .get()
+                    .build()
+
+                val resultJson = withContext(Dispatchers.IO) {
+                    val response = httpClient.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        response.body?.string()
+                    } else {
+                        null
+                    }
+                }
+
+                if (!resultJson.isNullOrBlank()) {
+                    val isImported = repository.importBackupJson(resultJson)
+                    if (isImported) {
+                        val now = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
+                        setLastCloudSyncTime(now)
+                        onResult(true, "Sinkronisasi Berhasil! Seluruh data transaksi & kategori telah disinkronisasikan dari cloud.")
+                    } else {
+                        onResult(false, "Struktur data tidak valid. Gagal memulihkan cadangan!")
+                    }
+                } else {
+                    onResult(false, "Belum ada riwayat data di cloud untuk email: $email. Silakan lakukan 'Unggah Data' terlebih dahulu di HP lama!")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onResult(false, e.message ?: "Koneksi terganggu. Silakan periksa koneksi internet Anda!")
+            }
         }
     }
 }

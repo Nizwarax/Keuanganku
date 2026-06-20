@@ -221,6 +221,7 @@ fun MainContainer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp)
+                    .heightIn(max = 580.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
