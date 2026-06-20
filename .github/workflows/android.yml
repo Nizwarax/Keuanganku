@@ -39,13 +39,10 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
       with:
-        validate-wrappers: false
-
-    - name: Make Gradlew Executable
-      run: chmod +x gradlew
+        gradle-version: '9.3.1'
 
     - name: Build Release APK (Bypassed Signing)
-      run: ./gradlew :app:assembleRelease --no-daemon
+      run: gradle :app:assembleRelease --no-daemon
 
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
